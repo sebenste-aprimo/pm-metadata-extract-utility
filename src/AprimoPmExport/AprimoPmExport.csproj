@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AprimoPmExport</RootNamespace>
+    <AssemblyName>aprimo-pm-export</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <!-- One dependency only, matching the DAM utility. System.Text.Json ships in the
+       framework and the CSV writer is hand-rolled, so nothing else is needed.
+       ProtectedData backs the DPAPI-encrypted credential store. -->
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- The offline suite reaches a few internal helpers directly — column-name
+       derivation, comment stripping, epoch conversion — because they carry rules worth
+       pinning down but no reason to be part of the public surface. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>aprimo-pm-export-tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- The object registry: which PM collections exist and how to page each one. -->
+    <None Update="objects.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Per-object CSV column lists. One file per object, plus a shared fallback. -->
+    <None Update="fields\**\*.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- The customer-settings template travels with the program, so a published folder is
+       self-explanatory: copy it to appsettings.local.json and fill in the tenant. It lives
+       at the repository root because that is where a person cloning the repo looks first. -->
+  <ItemGroup>
+    <None Include="..\..\appsettings.local.example.json" Link="appsettings.local.example.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

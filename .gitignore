@@ -1,0 +1,25 @@
+# Build output (dist/ is what publish.ps1 produces)
+bin/
+obj/
+dist/
+
+# A customer's own settings and data. These belong to whoever is running the tool and must
+# never be committed or copied into a copy of the tool that goes to someone else.
+appsettings.local.json
+# Anchored to the repository root: an unanchored "export/" also matches src/.../Export/, the
+# source folder, because git ignores case on Windows.
+/export/
+/fields/
+.aprimo-pm-checkpoint-*.json
+delta-state.json
+
+# Aprimo's own OpenAPI document. The spec-consistency tests use it when it is present, but it
+# is the vendor's file rather than this project's, so it is kept out of the repository.
+/Productivity_and_Spend_OpenAPI_Specification.txt
+
+# Per-machine tool settings (permissions, paths) - not part of the project.
+.claude/
+
+# The encrypted credential store lives in %LOCALAPPDATA%\AprimoPmExport, outside this tree.
+# These patterns only catch one that has been copied in by hand.
+*.dat

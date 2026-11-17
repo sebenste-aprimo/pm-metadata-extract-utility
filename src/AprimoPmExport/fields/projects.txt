@@ -1,0 +1,71 @@
+# Column list for 'projects' (/projects)
+#
+# Hand-written from the Project schema in the OpenAPI spec, as a starting point and as a
+# worked example of the format. It covers the schema properties only - tenant-defined
+# extended attributes cannot be known in advance, so add them here, or regenerate the
+# whole file from your own tenant:
+#
+#     aprimo-pm-export --objects projects --discover-fields --overwrite
+#
+# See fields/_default.txt for the full syntax.
+
+# ---- Identity ----
+ProjectId       => prop:projectId
+Title           => prop:title
+Description     => prop:description
+ActivityId      => prop:activityId
+ActivityName    => prop:activityName
+
+# ---- Status and dates ----
+# projectStatus, projectTypeId and the scaling types are numeric codes, not labels. PM
+# resolves them from configuration the REST surface does not expose, so they export as
+# integers. Map them downstream, or check whether GET /system-types/{systemtype} covers
+# the one you need.
+ProjectStatus   => prop:projectStatus
+ProjectTypeId   => prop:projectTypeId
+BeginDate       => prop:beginDate
+EndDate         => prop:endDate
+ProjectedEndDate => prop:projectedEndDate
+BaselineEndDate => prop:baselineEndDate
+HealthIndicatorDate => prop:healthIndicatorDate
+
+# outlook is a coded value (an integer 0-4 in the spec), not an object. It is a code like the
+# status above, so run --probe-lookups to see whether your tenant can resolve it to a label.
+Outlook         => prop:outlook
+
+# ---- People ----
+ProjectManager  => prop:projectManager
+ModifiedUser    => prop:modifiedUser
+ModifiedDate    => prop:modifiedDate
+
+# ---- Workflow ----
+WorkflowId      => prop:workflowId
+EndTaskId       => prop:endTaskId
+EnableAlap      => prop:enableAlap
+UseFloat        => prop:useFloat
+TimeZoneId      => prop:timeZoneId
+
+# ---- Change orders ----
+ChangeOrder     => prop:changeOrder
+# An array of objects holding only a category ID and a resource key for its title - there is
+# no name to take. The IDs, joined by Output.MultiValueSeparator.
+ChangeOrderCategoryIds => changeOrderCategories[*].projectCategoryId
+
+# ---- Assets ----
+DigitalAssetLocation => prop:digitalAssetLocation
+UploadToCollection   => prop:uploadToCollection
+UseDamAssetAccessList => prop:useDamAssetAccessList
+
+BrandName       => prop:brandName
+
+# ---- Tenant-defined extended attributes ----
+# Add your own below. Both forms work; run --sample to see which one your tenant
+# populates, since attributeName is readOnly in the spec and some tenants return it null.
+#
+#   ea:Business Unit
+#   ea#4102
+#   eamulti:Channels          # exports encodedListItemId codes, not labels
+#
+# Discovery, once:
+#   AllAttributeNames => extendedAttributes[*].attributeName
+#   AllAttributeIds   => extendedAttributes[*].eaId

@@ -1,0 +1,90 @@
+# Column list for 'activities' (/activities)
+#
+# Hand-written from the Activity schema in the OpenAPI spec, as a starting point. It
+# covers the schema properties only - regenerate from your own tenant to pick up
+# tenant-defined extended attributes:
+#
+#     aprimo-pm-export --objects activities --discover-fields --overwrite
+#
+# See fields/_default.txt for the full syntax.
+
+# ---- Identity ----
+ActivityId      => prop:activityId
+Name            => prop:name
+Description     => prop:description
+Objective       => prop:objective
+
+# ---- Classification ----
+# Numeric codes, not labels: PM resolves these from configuration the REST surface does
+# not expose. GET /system-types covers some of them.
+ActivityTypeId  => prop:activityTypeId
+ActivityStateId => prop:activityStateId
+SystemStateId   => prop:systemStateId
+ScsId           => prop:scsId
+ClientId        => prop:clientId
+BrandId         => prop:brandId
+BrandName       => prop:brandName
+
+# ---- Dates ----
+BeginDate       => prop:beginDate
+EndDate         => prop:endDate
+VisualEndDate   => prop:visualEndDate
+CalendarEndDate => prop:calendarEndDate
+TimeZoneId      => prop:timeZoneId
+ModifiedDate    => prop:modifiedDate
+ModifiedUser    => prop:modifiedUser
+
+# ---- People ----
+OwnerId         => prop:ownerId
+AdministratorId => prop:administratorId
+CreatorId       => prop:creatorId
+
+# ---- Financials ----
+# Every amount comes in two forms: the activity's own currency and the tenant's base
+# currency. Both are exported, because reconciling across activities needs the base
+# figures while reviewing one activity needs its own.
+CurrencyCode        => prop:currencyCode
+InvestmentAmount    => prop:investmentAmount
+BaseInvestmentAmount => prop:baseInvestmentAmount
+
+TotalEstCost        => prop:totalEstCost
+BaseTotalEstCost    => prop:baseTotalEstCost
+TotalEstLabor       => prop:totalEstLabor
+BaseTotalEstLabor   => prop:baseTotalEstLabor
+TotalEstMaterial    => prop:totalEstMaterial
+BaseTotalEstMaterial => prop:baseTotalEstMaterial
+TotalEstTne         => prop:totalEstTne
+BaseTotalEstTne     => prop:baseTotalEstTne
+
+TotalActualCost     => prop:totalActualCost
+BaseTotalActualCost => prop:baseTotalActualCost
+TotalActualLabor    => prop:totalActualLabor
+TotalActualMaterial => prop:totalActualMaterial
+TotalActualTne      => prop:totalActualTne
+
+TotalCommitFund     => prop:totalCommitFund
+BaseTotalCommitFund => prop:baseTotalCommitFund
+TotalOutstanding    => prop:totalOutstanding
+BaseTotalOutstanding => prop:baseTotalOutstanding
+
+FinancialGroupId    => prop:financialGroupId
+FundingAccountId    => prop:fundingAcctId
+FinancialsLocked    => prop:financialsLocked
+InvExchangeRateId   => prop:invExchangeRateId
+FinExchangeRateId   => prop:finExchangeRateId
+
+# ---- Lifecycle ----
+ProposalId      => prop:proposalId
+Origin          => prop:origin
+IsAdamActivity  => prop:isAdamActivity
+PurgeStatus     => prop:purgeStatus
+PurgedDate      => prop:purgedDate
+RetainRecord    => prop:retainRecord
+
+# ---- Memberships ----
+# Arrays of bare IDs, joined by Output.MultiValueSeparator.
+ProgramIds      => programMembershipList[*]
+ContentPlanIds  => contentPlanList[*]
+
+# ---- Tenant-defined extended attributes ----
+# Add your own below, e.g.  ea:Business Unit  /  ea#4102  /  eamulti:Channels

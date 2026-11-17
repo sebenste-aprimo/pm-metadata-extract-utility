@@ -1,0 +1,62 @@
+# Shared fallback column list.
+#
+# Used for any object with no {object}.txt of its own. It is deliberately minimal: PM's
+# objects share almost no properties, so the only honest shared list is the handful of
+# names that appear across many of their schemas. Anything object-specific belongs in a
+# per-object file.
+#
+# The intended setup is to generate real per-object lists instead:
+#
+#     aprimo-pm-export --all-objects --discover-fields
+#
+# That reads GET /metadata/{resourceName} plus a sampled item and writes one file per
+# object, including the tenant-defined extended attributes no spec can know about.
+#
+# ---------------------------------------------------------------------------
+# SYNTAX
+#
+#   name              the item property, falling back to an extended attribute of that
+#                     name. Both namespaces exist in PM and nothing in a name says which
+#                     one it is, so both are tried.
+#   prop:name         the item property only, no fallback
+#   ea:Name           a single-valued extended attribute, by name
+#   ea#123            the same attribute by ID - use this if --sample shows the tenant
+#                     returns attributeName as null
+#   eamulti:Name      a multi-valued (pick-list) attribute. Exports encodedListItemId
+#                     codes, not labels; decode them with --selection-list <name>.
+#   Column => path    an explicit mapping, e.g.  Owner => createdBy.userName
+#   a || b || c       fallback branches - the first that yields a value wins
+#
+# Separators: newlines, commas, semicolons or tabs, mixed freely.
+# '#' and '//' start a comment, but only at line start or after whitespace, since
+# attribute names contain '#' and it is also the ea#123 syntax.
+#
+# Column headers follow Aprimo's outputName rule: whitespace becomes '_', and anything
+# outside [A-Za-z0-9_] is dropped.
+# ---------------------------------------------------------------------------
+
+# Names that recur across most PM schemas. A branch that does not exist on a given
+# object simply resolves to nothing, so one line can cover several objects.
+
+Name          => name || title || activityTitle || description
+Description   => description
+Status        => status || statusName || activeFlag
+
+# Almost every object stamps modifications this way. Budget is the exception - it uses
+# epoch integers in updatedAt / createdAt, which the delta comparer handles but which
+# will appear here as raw numbers.
+ModifiedDate  => modifiedDate || updatedAt
+ModifiedUser  => modifiedUser || modifiedBy || modifiedUserId
+CreatedDate   => createdDate || createdAt || dateRequested
+CreatedBy     => createdBy || creatorId || creator
+
+BeginDate     => beginDate || startDate
+EndDate       => endDate || expirationDate
+
+OwnerId       => ownerId
+CurrencyCode  => currencyCode
+
+# Every tenant-defined attribute on the item, joined - useful once, for discovery.
+# Uncomment to see what exists, then replace it with the specific ones you want.
+# AllAttributeNames  => extendedAttributes[*].attributeName
+# AllAttributeIds    => extendedAttributes[*].eaId

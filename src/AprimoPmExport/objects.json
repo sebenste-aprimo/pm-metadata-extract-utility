@@ -1,0 +1,384 @@
+{
+  // Aprimo PM (Productivity & Spend) object registry.
+  //
+  // Every top-level, pageable collection in the OpenAPI spec. One entry per exportable
+  // object; the utility writes one CSV file set per object.
+  //
+  // Comments are allowed - the loader is configured to skip them.
+  //
+  // FIELDS
+  //   Name              Slug used on the command line (--objects) and in file names.
+  //   Path              Collection endpoint, relative to Aprimo.ApiBaseUrl.
+  //   Schema            OpenAPI schema of one item. Documentation only.
+  //   MetadataResource  Name passed to GET /metadata/{resourceName} for field discovery.
+  //                     The spec's own deprecation note ("/metadata/groups -> use
+  //                     /metadata/group") shows the name is singular, so these are too.
+  //   EmbedKey          Key under "_embedded" holding the item array. The spec types
+  //                     _embedded as additionalProperties keyed by "the resource type
+  //                     name" without ever saying what that string is, so this stays a
+  //                     hint: with no EmbedKey the reader takes the sole array under
+  //                     _embedded, and with a wrong one it still does that (warning) as
+  //                     long as there is only one array to choose from. It fails only
+  //                     when several arrays are present and the named one is absent,
+  //                     because then the key is the only thing telling them apart.
+  //
+  //                     OBSERVED: on /projects the key is "Project" - the OpenAPI schema
+  //                     name, capitalised and singular, NOT the path segment and NOT the
+  //                     metadata resourceType (which came back as a fully-qualified .NET
+  //                     type name). If that pattern holds, every object's EmbedKey is its
+  //                     "Schema" value below. Only /projects has actually been seen, so
+  //                     only /projects is pinned; confirm each with --sample, which
+  //                     prints the key it found, and fill the rest in as you go.
+  //   IdProperty        Primary key. Used for de-duplication and for --record.
+  //   ModifiedProperty  Timestamp a delta window compares against. Null = the object
+  //                     carries no modified stamp, so it cannot be exported
+  //                     incrementally; those objects are full-export only.
+  //   CreatedProperty   Creation timestamp, where the schema has one.
+  //   TitleProperty     Human-readable label, used in --sample output only.
+  //   DetailPath        Single-item endpoint, for --record. Null = none in the spec.
+  //   SupportsExtendedAttributes
+  //                     True when the schema carries extendedAttributes /
+  //                     multipleValueExtendedAttributes, i.e. tenant-defined metadata.
+  //   ModifiedAfterParam
+  //                     Query parameter that filters server-side on the modified date.
+  //                     Only /review-tasks declares one in the whole spec; everything
+  //                     else has to be narrowed client-side. See README, "Delta export".
+  //   ExtraQuery        Fixed query parameters appended to every request.
+  //   Enabled           false drops the object from --all-objects without deleting it.
+
+  "Objects": [
+    {
+      "Name": "activities",
+      "Path": "/activities",
+      "Schema": "Activity",
+      "MetadataResource": "activity",
+      "IdProperty": "activityId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "name",
+      "DetailPath": "/activities/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "projects",
+      "Path": "/projects",
+      "Schema": "Project",
+      "MetadataResource": "project",
+
+      // Observed on one tenant. If another tenant differs, nothing breaks: with a single
+      // array under _embedded the reader takes it anyway and logs a note.
+      "EmbedKey": "Project",
+
+      "IdProperty": "projectId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "title",
+      "DetailPath": "/projects/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "tasks",
+      "Path": "/tasks",
+      "Schema": "AssignmentTask",
+      "MetadataResource": "task",
+      "IdProperty": "taskId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "name",
+      "DetailPath": "/tasks/{id}",
+      "SupportsExtendedAttributes": true,
+
+      // GET /tasks is documented as "the current user's tasks", so what comes back
+      // depends on the registration's own assignments. For a tenant-wide task export,
+      // walk /projects/{projectId}/tasks instead - see README, "Objects scoped to the
+      // calling user".
+      "ScopedToCallingUser": true
+    },
+    {
+      "Name": "review-tasks",
+      "Path": "/review-tasks",
+      "Schema": "ReviewTask",
+      "MetadataResource": "reviewtask",
+      "IdProperty": "taskId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "name",
+      "DetailPath": "/review-tasks/{id}",
+      "SupportsExtendedAttributes": true,
+
+      // The only server-side changed-since filter in the entire spec.
+      "ModifiedAfterParam": "modifiedAfterDate"
+    },
+    {
+      "Name": "programs",
+      "Path": "/programs",
+      "Schema": "Program",
+      "MetadataResource": "program",
+      "IdProperty": "programId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "title",
+      "DetailPath": "/programs/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "content-plans",
+      "Path": "/content-plans",
+      "Schema": "ContentPlan",
+      "MetadataResource": "contentplan",
+      "IdProperty": "planId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "title",
+      "DetailPath": "/content-plans/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "activity-proposals",
+      "Path": "/activity-proposal-templates",
+      "Schema": "ActivityProposal",
+      "MetadataResource": "activityproposal",
+      "IdProperty": "proposalId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "title",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "offers",
+      "Path": "/offers",
+      "Schema": "Offer",
+      "MetadataResource": "offer",
+      "IdProperty": "offerId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "title",
+      "DetailPath": "/offers/{id}",
+      "SupportsExtendedAttributes": true
+    },
+
+    // ---- Spend ----
+    {
+      "Name": "budgets",
+      "Path": "/budget",
+      "Schema": "Budget",
+      "MetadataResource": "budget",
+      "IdProperty": "id",
+      // Budget stamps are epoch integers, not ISO strings, unlike every other object.
+      // The delta comparer handles both; see EpochMilliseconds below.
+      "ModifiedProperty": "updatedAt",
+      "CreatedProperty": "createdAt",
+      "ModifiedIsEpoch": true,
+      "TitleProperty": "name",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "budget-templates",
+      "Path": "/budget-templates",
+      "Schema": "BudgetTemplate",
+      "MetadataResource": "budgettemplate",
+      "IdProperty": "id",
+      "ModifiedProperty": "updatedAt",
+      "CreatedProperty": "createdAt",
+      "TitleProperty": "name",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "commitments",
+      "Path": "/commitments",
+      "Schema": "CommittedFund",
+      "MetadataResource": "commitment",
+      "IdProperty": "committedId",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "description",
+      "DetailPath": "/commitments/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "invoices",
+      "Path": "/invoices",
+      "Schema": "Invoice",
+      "MetadataResource": "invoice",
+      "IdProperty": "invoiceId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "invoiceNumber",
+      "DetailPath": "/invoices/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "journal-vouchers",
+      "Path": "/journal-vouchers",
+      "Schema": "JournalVoucher",
+      "MetadataResource": "journalvoucher",
+      "IdProperty": "journalVoucherId",
+      "ModifiedProperty": "modifiedDate",
+      "DetailPath": "/journal-vouchers/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "suppliers",
+      "Path": "/suppliers",
+      "Schema": "Supplier",
+      "MetadataResource": "supplier",
+      "IdProperty": "supplierId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "name",
+      "DetailPath": "/suppliers/{id}",
+      "SupportsExtendedAttributes": true
+    },
+
+    // ---- Work requests ----
+    {
+      "Name": "work-requests",
+      "Path": "/work-requests",
+      "Schema": "WorkRequest",
+      "MetadataResource": "workrequest",
+      "IdProperty": "requestId",
+      // No modified stamp on this schema; dateRequested is the only timestamp, so a
+      // delta window over it means "requested in the window", not "changed in it".
+      "ModifiedProperty": null,
+      "CreatedProperty": "dateRequested",
+      "TitleProperty": "activityTitle",
+      "DetailPath": "/work-requests/{id}",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "work-request-forms",
+      "Path": "/work-request-forms",
+      "Schema": "WorkRequestForm",
+      "MetadataResource": "workrequestform",
+      "IdProperty": "activityId",
+      "ModifiedProperty": null,
+      "TitleProperty": "name",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "work-request-categories",
+      "Path": "/work-request-categories",
+      "Schema": "WorkRequestCategory",
+      "MetadataResource": "workrequestcategory",
+      "IdProperty": "siteId",
+      "ModifiedProperty": null,
+      "TitleProperty": "category",
+      "SupportsExtendedAttributes": false
+    },
+
+    // ---- People and access ----
+    {
+      "Name": "groups",
+      "Path": "/groups",
+      "Schema": "Group",
+      "MetadataResource": "group",
+      "IdProperty": "groupId",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "name",
+      "DetailPath": "/groups/{id}",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "user-roles",
+      "Path": "/user-roles",
+      "Schema": "UserRole",
+      "MetadataResource": "userrole",
+      "IdProperty": "roleId",
+      "ModifiedProperty": "modifiedDate",
+      "TitleProperty": "name",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "teams",
+      "Path": "/teams",
+      "Schema": "WfTeam",
+      "MetadataResource": "team",
+      "IdProperty": "teamId",
+      "ModifiedProperty": null,
+      "TitleProperty": "name",
+      "SupportsExtendedAttributes": false
+    },
+    {
+      "Name": "domain-rights",
+      "Path": "/domain-rights",
+      "Schema": "Right",
+      "MetadataResource": "right",
+      "IdProperty": "functionID",
+      "ModifiedProperty": null,
+      "TitleProperty": "name",
+      "SupportsExtendedAttributes": false
+    },
+
+    // ---- Operational ----
+    {
+      "Name": "integration-logs",
+      "Path": "/integration-logs",
+      "Schema": "IntegrationLog",
+      "MetadataResource": "integrationlog",
+      "IdProperty": "logId",
+      "ModifiedProperty": null,
+      "CreatedProperty": "createdDate",
+      "DetailPath": "/integration-logs/{id}",
+      "SupportsExtendedAttributes": false,
+
+      // High volume and rarely wanted in a metadata export. Name it explicitly with
+      // --objects integration-logs to include it.
+      "Enabled": false
+    },
+
+    // ---- Tenant-defined generic objects ----
+    // Aprimo ships five configurable object types. Most tenants use none or a few, and
+    // an unused one simply returns an empty collection.
+    {
+      "Name": "generic-object-alpha",
+      "Path": "/generic-object-alpha",
+      "Schema": "GenericObjectAlpha",
+      "MetadataResource": "genericobjectalpha",
+      "IdProperty": "id",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "name",
+      "DetailPath": "/generic-object-alpha/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "generic-object-bravo",
+      "Path": "/generic-object-bravo",
+      "Schema": "GenericObjectBravo",
+      "MetadataResource": "genericobjectbravo",
+      "IdProperty": "id",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "name",
+      "DetailPath": "/generic-object-bravo/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "generic-object-charlie",
+      "Path": "/generic-object-charlie",
+      "Schema": "GenericObjectCharlie",
+      "MetadataResource": "genericobjectcharlie",
+      "IdProperty": "id",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "name",
+      "DetailPath": "/generic-object-charlie/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "generic-object-delta",
+      "Path": "/generic-object-delta",
+      "Schema": "GenericObjectDelta",
+      "MetadataResource": "genericobjectdelta",
+      "IdProperty": "id",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "name",
+      "DetailPath": "/generic-object-delta/{id}",
+      "SupportsExtendedAttributes": true
+    },
+    {
+      "Name": "generic-object-echo",
+      "Path": "/generic-object-echo",
+      "Schema": "GenericObjectEcho",
+      "MetadataResource": "genericobjectecho",
+      "IdProperty": "id",
+      "ModifiedProperty": "modifiedDate",
+      "CreatedProperty": "createdDate",
+      "TitleProperty": "name",
+      "DetailPath": "/generic-object-echo/{id}",
+      "SupportsExtendedAttributes": true
+    }
+  ]
+}

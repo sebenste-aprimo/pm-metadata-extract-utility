@@ -1,0 +1,84 @@
+# Column list for 'tasks' (/tasks)
+#
+# Hand-written from the AssignmentTask schema in the OpenAPI spec, as a starting point.
+# Regenerate from your own tenant to pick up tenant-defined extended attributes:
+#
+#     aprimo-pm-export --objects tasks --discover-fields --overwrite
+#
+# NOTE: GET /tasks is documented as "the current user's tasks", so what this exports
+# depends on the registration's own assignments rather than covering the tenant. For a
+# tenant-wide task export, walk /projects/{projectId}/tasks instead - see the README
+# section "Objects scoped to the calling user".
+#
+# See fields/_default.txt for the full syntax.
+
+# ---- Identity ----
+TaskId          => prop:taskId
+Name            => prop:name
+Description     => prop:description
+ProjectId       => prop:projectId
+ProjectTitle    => prop:projectTitle
+ActivityId      => prop:activityId
+ActivityName    => prop:activityName
+
+# ---- Status ----
+# Numeric codes, not labels.
+WorkFlowTaskStatus => prop:workFlowTaskStatus
+TaskType        => prop:taskType
+TaskStepType    => prop:taskStepType
+WorkEntryType   => prop:workEntryType
+WorkGroupActionId => prop:workGroupActionId
+AssigneeWorkStatus => prop:assigneeWorkStatus
+DerivedIndicatorTaskType => prop:derivedIndicatorTaskType
+
+# ---- Dates ----
+# The API returns both local and UTC forms. Export both: the UTC pair is what a delta
+# window and any cross-tenant comparison should use, while the local pair is what the
+# task looks like to the person doing it.
+BeginDate       => prop:beginDate
+BeginDateUtc    => prop:beginDateUtc
+EndDate         => prop:endDate
+EndDateUtc      => prop:endDateUtc
+AcceptanceDate  => prop:acceptanceDate
+BaselineBeginDate => prop:baselineBeginDate
+BaselineEndDate => prop:baselineEndDate
+RollupActualBeginDate => prop:rollupActualBeginDate
+RollupActualEndDate   => prop:rollupActualEndDate
+ModifiedDate    => prop:modifiedDate
+ModifiedUser    => prop:modifiedUser
+
+# ---- Effort ----
+EstimatedDuration => prop:estimatedDuration
+EstimatedWork   => prop:estimatedWork
+RollupActualWork => prop:rollupActualWork
+EnteredEstimatedWorkDay    => prop:enteredEstimatedWorkDay
+EnteredEstimatedWorkHour   => prop:enteredEstimatedWorkHour
+EnteredEstimatedWorkMinute => prop:enteredEstimatedWorkMinute
+WorkScheduleId  => prop:workScheduleId
+Size            => prop:size
+SprintId        => prop:sprintId
+
+# ---- Behaviour flags ----
+AutoClose       => prop:autoClose
+AutoAccept      => prop:autoAccept
+CanClose        => prop:canClose
+CanSkip         => prop:canSkip
+CanDelegate     => prop:canDelegate
+CanDecline      => prop:canDecline
+StartType       => prop:startType
+OnExecutionPath => prop:onExecutionPath
+
+# ---- Assignment ----
+NumberOfAssignees => prop:numberOfAssignees
+CompletedByUser => prop:completedByUser
+WorkflowStepId  => prop:workflowStepId
+
+# Nested arrays: take a joined summary rather than raw JSON in the cell. Each is checked
+# against its schema - in particular a predecessor's own ID is predTaskId, because the
+# taskId beside it is the task being described, not its predecessor.
+AssigneeUserIds => assignees[*].userId
+RoleIds         => taskRoles[*].roleId
+PredecessorTaskIds => taskPredecessors[*].predTaskId
+
+# ---- Tenant-defined extended attributes ----
+# Add your own below, e.g.  ea:Business Unit  /  ea#4102  /  eamulti:Channels

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A plain console app, not a test-framework project. The suite needs nothing but the
+       SDK: no package to restore, no runner to install, and it works offline. Exit code
+       0 means everything passed. Same arrangement as the DAM utility's suite. -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AprimoPmExport.Tests</RootNamespace>
+    <AssemblyName>aprimo-pm-export-tests</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AprimoPmExport\AprimoPmExport.csproj" />
+  </ItemGroup>
+
+  <!-- Copy the shipped data files next to the test binary so the suite can make
+       structural assertions about what actually ships. A ProjectReference does not
+       carry the referenced project's content files across, so they are listed here.
+       The assertions are structural only, so editing these for a real tenant will not
+       break the suite. -->
+  <ItemGroup>
+    <None Include="..\..\src\AprimoPmExport\objects.json" Link="objects.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\src\AprimoPmExport\appsettings.json" Link="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- The template a customer copies to appsettings.local.json. Listed so the suite can
+         check that it parses and that it cannot be used without being edited. -->
+    <None Include="..\..\appsettings.local.example.json" Link="appsettings.local.example.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\src\AprimoPmExport\fields\*.txt" Link="fields\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
